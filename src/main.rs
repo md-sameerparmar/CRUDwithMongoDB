@@ -1,6 +1,10 @@
-use mongodb::{Client, options::{ClientOptions, FindOptions, UpdateOptions}};
+use async_std::stream::StreamExt;
 use bson::{doc, oid::ObjectId};
-use serde::{Serialize, Deserialize};
+use mongodb::{
+    options::{ClientOptions, FindOptions, UpdateOptions},
+    Client,
+};
+use serde::{Deserialize, Serialize};
 use std::io;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -12,62 +16,157 @@ struct User {
     age: i32,
 }
 
+fn varify_name(name: &str) -> bool {
+    let mut is_valid = true;
+
+    if name.is_empty() {
+        is_valid = false;
+        println!(" !!This field cannot be empty!!");
+    }
+    if name.chars().next() == Some('_') {
+        is_valid = false;
+        println!("\n !!Name must not start with an underscore!!");
+    }
+    is_valid
+}
 
 #[tokio::main]
 async fn main() {
-    let client_options = ClientOptions::parse("mongodb://localhost:27017").await.unwrap();
+    let client_options = ClientOptions::parse("mongodb://localhost:27017")
+        .await
+        .unwrap();
     let client = Client::with_options(client_options).unwrap();
     let db = client.database("mydatabase");
     let collection = db.collection("users");
 
-    // let val = "test";
-    // Insert a document
-    // let mut users: Vec<User> = Vec::new();
-    
-    println!("\n- Enter first name only:");
-    let mut name = String::new();
-    io::stdin().read_line(&mut name).unwrap();
-    let name = name.trim().to_string();
+    loop {
+        println!("\nEnter your Choice: \n👉🏻 Press 1 for Insert. \n👉🏻 Press 2 for Read. \n👉🏻 Press 3 for Update. \n👉🏻 Press 4 for Delete. \n👉🏻 Press 5 for Exit.");
 
-    if name.is_empty() {
-        println!("- First, Enter your name:");
+        let mut choice = String::new();
+        io::stdin().read_line(&mut choice).unwrap();
+        let choice = choice.trim().to_string();
+
+        match choice.as_str() {
+            "1" => {
+                // Insert a document
+
+                loop {
+                    println!("\n- 🤨Enter first name only:");
+                    let mut input_name = String::new();
+                    io::stdin().read_line(&mut input_name).unwrap();
+                    let name = input_name.trim().to_string();
+
+                    if varify_name(&name) {
+                        // collection.insert_one(doc!{ "name" : name }, None).await.unwrap();
+                    } else {
+                        continue;
+                    }
+
+                    println!("\n- 📧Enter email address:");
+                    let mut email = String::new();
+                    io::stdin().read_line(&mut email).unwrap();
+                    let email = email.trim().to_string();
+
+                    println!("\n- 🎂Enter your age:");
+                    let mut age = String::new();
+                    io::stdin().read_line(&mut age).unwrap();
+                    let age = age.trim().to_string();
+
+                    let user = User {
+                        id: ObjectId::new(),
+                        name: name.to_string(),
+                        email: email.to_string(),
+                        age: age.parse().unwrap(),
+                    };
+
+                    collection.insert_one(user, None).await.unwrap();
+                    println!("\nHello, {}!!👋", name);
+                    break;
+                }
+            }
+            "2" => {
+                // Find documents
+                println!("\n🔎 Enter name which you want to find:");
+                let mut input_name = String::new();
+                io::stdin().read_line(&mut input_name).unwrap();
+                let name = input_name.trim().to_string();
+
+                let filter = doc! { "name": name };
+                let find_options = FindOptions::builder().build();
+                let mut cursor = collection.find(filter, find_options).await.unwrap();
+                // let mut users = vec![];
+
+                cursor.next().await.into_iter().for_each(|result| {
+                    match result {
+                        Ok(document) => {
+                            println!("\nName: {:?}\nEmail: {:?}\nAge: {:?}",document.name,document.email,document.age);
+                        },
+                        Err(e) => println!("Error: {:?}", e),
+                    }
+                });
+            }
+            "3" => {
+                // Update a document
+                println!("\n🛠🤦🏻‍♂️ Enter name which you want to update:");
+                let mut input_name = String::new();
+                io::stdin().read_line(&mut input_name).unwrap();
+                let name = input_name.trim().to_string();
+
+                let filter = doc! { "name": &name };
+
+                println!("\n🆕 Enter new name:");
+                let mut new_input_name = String::new();
+                io::stdin().read_line(&mut new_input_name).unwrap();
+                let new_name = new_input_name.trim().to_string();
+
+                println!("\n🆕 Enter new email address:");
+                let mut input_email = String::new();
+                io::stdin().read_line(&mut input_email).unwrap();
+                let email = input_email.trim().to_string();
+
+                println!("\n🆕 Enter new age:");
+                let mut age = String::new();
+                io::stdin().read_line(&mut age).unwrap();
+                let age:i32 = age.trim().parse().unwrap();
+
+                let update = doc! { "$set": { "name": new_name, "email": email, "age": age} };
+                let update_options = UpdateOptions::builder().build();
+
+                collection.update_one(filter, update, update_options).await.unwrap();
+
+                // Find updated documents
+                let filter = doc! { "name": &name };
+                let find_options = FindOptions::builder().build();
+                let mut cursor = collection.find(filter, find_options).await.unwrap();
+                
+
+            cursor.next().await.into_iter().for_each(|result| {
+                match result {
+                    Ok(document) => {
+                        println!("3 {:?}",document);
+                    },
+                    Err(error) => println!("Error: {:?}", error),
+                }
+            });
+                
+            }
+            "4" => {
+                println!("\n🗑 Enter name which you want to delete:");
+                let mut input_name = String::new();
+                io::stdin().read_line(&mut input_name).unwrap();
+                let name = input_name.trim().to_string();
+
+                let filter = doc! { "name": name };
+                collection.delete_one(filter, None).await.unwrap();
+                println!("\n Record deleted!💁🏻‍♂️");
+            }
+            "5" => {
+                break;
+            }
+
+            _ => {
+                println!("invalid input😵🥴");
+            }
+        };
     }
-
-
-    println!("\n- Enter Email:");
-    let mut email = String::new();
-    io::stdin().read_line(&mut email).unwrap();
-    let email = email.trim().to_string();
-
-    println!("\n- Enter Age:");
-    let mut age = String::new();
-    io::stdin().read_line(&mut age).unwrap();
-    let age = age.trim().to_string();
-
-    let user = User {
-        id: ObjectId::new(),
-        name: name.to_string(),
-        email: email.to_string(),
-        age: age.parse().unwrap(),
-    };
-
-    collection.insert_one(user, None).await.unwrap();
-
-    // Find documents
-    // let filter = doc! { "name": "John Doe" };
-    // let find_options = FindOptions::builder().build();
-    // let cursor = collection.find(filter, find_options).await.unwrap();
-    // let mut users = vec![];
-
-    // for result in cursor {
-    //     match result {
-    //         Ok(document) => {
-    //             let user: User = bson::from_bson(bson::Bson::Document(document)).unwrap();
-    //             users.push(user);
-    //         },
-    //         Err(error) => println!("Error: {:?}", error),
-    //     }
-    // }
-
-    // println!("{:?}", users);
 }
