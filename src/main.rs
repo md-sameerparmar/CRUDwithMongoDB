@@ -40,7 +40,7 @@ async fn main() {
     let collection = db.collection("users");
 
     loop {
-        println!("\nEnter your Choice: \n👉🏻 Press 1 for Insert. \n👉🏻 Press 2 for Read. \n👉🏻 Press 3 for Update. \n👉🏻 Press 4 for Delete. \n👉🏻 Press 5 for Exit.");
+        println!("\nEnter your Choice: \n👉 Press 1 for Insert. \n👉 Press 2 for Read. \n👉 Press 3 for Update. \n👉 Press 4 for Delete. \n👉 Press 5 for Exit.");
 
         let mut choice = String::new();
         io::stdin().read_line(&mut choice).unwrap();
@@ -51,7 +51,7 @@ async fn main() {
                 // Insert a document
 
                 loop {
-                    println!("\n- 🤨Enter first name only:");
+                    println!("\n- 🤨 Enter first name only:");
                     let mut input_name = String::new();
                     io::stdin().read_line(&mut input_name).unwrap();
                     let name = input_name.trim().to_string();
@@ -62,12 +62,12 @@ async fn main() {
                         continue;
                     }
 
-                    println!("\n- 📧Enter email address:");
+                    println!("\n- 📧 Enter email address:");
                     let mut email = String::new();
                     io::stdin().read_line(&mut email).unwrap();
                     let email = email.trim().to_string();
 
-                    println!("\n- 🎂Enter your age:");
+                    println!("\n- 🎂 Enter your age:");
                     let mut age = String::new();
                     io::stdin().read_line(&mut age).unwrap();
                     let age = age.trim().to_string();
@@ -107,7 +107,7 @@ async fn main() {
             }
             "3" => {
                 // Update a document
-                println!("\n🛠🤦🏻‍♂️ Enter name which you want to update:");
+                println!("\n🛠🤦 Enter name which you want to update:");
                 let mut input_name = String::new();
                 io::stdin().read_line(&mut input_name).unwrap();
                 let name = input_name.trim().to_string();
@@ -143,7 +143,8 @@ async fn main() {
             cursor.next().await.into_iter().for_each(|result| {
                 match result {
                     Ok(document) => {
-                        println!("3 {:?}",document);
+                        println!(" {:?} \n ✌ Record updated successfully!!",document);
+                        // println!("\nUpdate successfully!!")
                     },
                     Err(error) => println!("Error: {:?}", error),
                 }
@@ -151,21 +152,22 @@ async fn main() {
                 
             }
             "4" => {
-                println!("\n🗑 Enter name which you want to delete:");
+                println!("\n⛔ Enter name which you want to delete:");
                 let mut input_name = String::new();
                 io::stdin().read_line(&mut input_name).unwrap();
                 let name = input_name.trim().to_string();
 
                 let filter = doc! { "name": name };
                 collection.delete_one(filter, None).await.unwrap();
-                println!("\n Record deleted!💁🏻‍♂️");
+                println!("\n Record deleted!💁‍♀️");
             }
             "5" => {
+                println!("\n Thank you!!😇\n Have a good day!!🤗\n");
                 break;
             }
 
             _ => {
-                println!("invalid input😵🥴");
+                println!("\n0Invalid input😵🥴");
             }
         };
     }
